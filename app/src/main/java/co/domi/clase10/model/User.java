@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 public class User implements Serializable {
     private String id;
     private String username;
+    private String photoId;
 
     public User() {
     }
@@ -30,6 +31,14 @@ public class User implements Serializable {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getPhotoId() {
+        return photoId;
+    }
+
+    public void setPhotoId(String photoId) {
+        this.photoId = photoId;
     }
 
     @Override

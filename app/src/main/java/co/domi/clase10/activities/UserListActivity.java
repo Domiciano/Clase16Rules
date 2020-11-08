@@ -1,9 +1,12 @@
 package co.domi.clase10.activities;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import co.domi.clase10.R;
 import co.domi.clase10.comm.Actions;
 import co.domi.clase10.events.OnUserListListener;
+import co.domi.clase10.lists.adapter.UserAdapter;
 import co.domi.clase10.model.User;
 
 import android.content.Intent;
@@ -26,15 +29,14 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 
-public class UserListActivity extends AppCompatActivity implements AdapterView.OnItemClickListener, View.OnClickListener {
+public class UserListActivity extends AppCompatActivity implements View.OnClickListener, UserAdapter.OnUserClickListener {
 
     private User myUser;
-    private ListView userList;
-    private ArrayAdapter<User> userArrayAdapter;
-    private ArrayList<User> users;
+    private RecyclerView userList;
     private FirebaseFirestore db;
-    private Button logoutBtn;
+    private Button logoutBtn, profileBtn;
     private boolean isLoggingout = false;
+    private UserAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,32 +45,42 @@ public class UserListActivity extends AppCompatActivity implements AdapterView.O
         //Configuracion de la lista
         userList = findViewById(R.id.userList);
         logoutBtn = findViewById(R.id.logoutBtn);
-        users = new ArrayList<>();
-        userArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, users);
-        userList.setAdapter(userArrayAdapter);
+        profileBtn = findViewById(R.id.profileBtn);
+
+
+        adapter = new UserAdapter();
+        adapter.setListener(this);
+        userList.setAdapter(adapter);
+        userList.setHasFixedSize(true);
+        LinearLayoutManager manager = new LinearLayoutManager(this);
+        userList.setLayoutManager(manager);
+
+
         //Recuperar el user de la actividad pasada
         myUser = (User) getIntent().getExtras().getSerializable("myUser");
         //Listar usuarios
         db = FirebaseFirestore.getInstance();
 
-        Query userReference = db.collection("users").orderBy("username").limit(10);
-        userReference.get().addOnCompleteListener(
-                task -> {
-                    users.clear();
-                    for(QueryDocumentSnapshot doc : task.getResult()){
-                        User user = doc.toObject(User.class);
-                        users.add(user);
-                    }
-                    userArrayAdapter.notifyDataSetChanged();
-                }
-        );
-
 
 
         //Habilitar los clicks a items de la lista
-        userList.setOnItemClickListener(this);
         logoutBtn.setOnClickListener(this);
+        profileBtn.setOnClickListener(this);
 
+    }
+
+
+    public void loadUserList(){
+        Query userReference = db.collection("users").orderBy("username").limit(10);
+        userReference.get().addOnCompleteListener(
+                task -> {
+                    adapter.clear();
+                    for(QueryDocumentSnapshot doc : task.getResult()){
+                        User user = doc.toObject(User.class);
+                        adapter.addUser(user);
+                    }
+                }
+        );
     }
 
 
@@ -90,18 +102,7 @@ public class UserListActivity extends AppCompatActivity implements AdapterView.O
     protected void onResume() {
         super.onResume();
         FirebaseMessaging.getInstance().unsubscribeFromTopic(myUser.getUsername());
-    }
-
-    //Se activa cuando damos click a un item de la lista
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        User userClicked = users.get(position);
-        Intent intent = new Intent(this, ChatActivity.class);
-
-        intent.putExtra("myUser",this.myUser);
-        intent.putExtra("userClicked",userClicked);
-        
-        startActivity(intent);
+        loadUserList();
     }
 
     @Override
@@ -111,6 +112,19 @@ public class UserListActivity extends AppCompatActivity implements AdapterView.O
                 isLoggingout = true;
                 finish();
                 break;
+            case R.id.profileBtn:
+                Intent intent = new Intent(this, ProfileActivity.class);
+                intent.putExtra("myUser", this.myUser);
+                startActivity(intent);
+                break;
         }
+    }
+
+    @Override
+    public void onUserClick(User userClicked) {
+        Intent intent = new Intent(this, ChatActivity.class);
+        intent.putExtra("myUser",this.myUser);
+        intent.putExtra("userClicked",userClicked);
+        startActivity(intent);
     }
 }
