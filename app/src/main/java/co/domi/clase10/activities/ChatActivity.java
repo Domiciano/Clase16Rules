@@ -114,6 +114,8 @@ public class ChatActivity extends AppCompatActivity implements View.OnClickListe
                             currentChat = rel1;
                         }
                         suscribeToMessages();
+                    }else{
+                        Log.e(">>>", task.getException().getMessage());
                     }
                 }
         );

@@ -1,5 +1,6 @@
 package co.domi.clase10.activities;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -23,9 +24,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.lang.reflect.Array;
@@ -98,17 +102,27 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
                     myUser = snapshot.toObject(User.class);
                     Toast.makeText(this, "Bienvenido " + myUser.getUsername(), Toast.LENGTH_LONG).show();
                     FirebaseMessaging.getInstance().unsubscribeFromTopic(myUser.getUsername());
+                    publicUser();
                 }
         );
     }
 
+    private void publicUser() {
+        User publicUser = new User(
+                myUser.getId(),
+                myUser.getUsername(),
+                null,
+                null
+        );
+        db.collection("publicUsers").document(myUser.getId()).set(publicUser);
+    }
 
     public void loadUserList(){
-        Query userReference = db.collection("users").orderBy("username").limit(10);
-        userReference.get().addOnCompleteListener(
-                task -> {
+        Query userReference = db.collection("publicUsers").orderBy("username").limit(10);
+        userReference.addSnapshotListener(
+                (value, error) -> {
                     adapter.clear();
-                    for(QueryDocumentSnapshot doc : task.getResult()){
+                    for(DocumentSnapshot doc : value.getDocuments()){
                         User user = doc.toObject(User.class);
                         adapter.addUser(user);
                     }
@@ -125,8 +139,7 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
             //Suscribimos a nuestra propia rama
             FirebaseMessaging.getInstance().subscribeToTopic(myUser.getUsername());
         }
-
-
+        db.collection("publicUsers").document(myUser.getId()).set(null);
         super.onPause();
     }
 
