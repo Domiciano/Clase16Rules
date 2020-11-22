@@ -14,9 +14,13 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -29,16 +33,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button loginBtn;
     private EditText usernameET;
     private FirebaseFirestore db;
+    private EditText passwordET;
+    private TextView singupLink, forgotPasswordLink;
+    private FirebaseAuth auth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        auth = FirebaseAuth.getInstance();
+
         loginBtn = findViewById(R.id.loginBtn);
         usernameET = findViewById(R.id.usernameET);
+        passwordET = findViewById(R.id.passwordET);
+        singupLink = findViewById(R.id.signupLink);
+        forgotPasswordLink = findViewById(R.id.forgotPasswordLink);
 
         loginBtn.setOnClickListener(this);
+        singupLink.setOnClickListener(this);
+        forgotPasswordLink.setOnClickListener(this);
 
         db = FirebaseFirestore.getInstance();
 
@@ -50,39 +64,43 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.loginBtn:
-                String username = usernameET.getText().toString();
-                User user = new User(UUID.randomUUID().toString(), username);
+                auth.signInWithEmailAndPassword(usernameET.getText().toString(), passwordET.getText().toString())
+                    .addOnCompleteListener(
+                            task -> {
+                                if(task.isSuccessful()){
+                                    FirebaseUser fbuser = auth.getCurrentUser();
 
-                //Saber si el usuario ya estaba registrado
-                CollectionReference usersRef = db.collection("users");
-                Query query = usersRef.whereEqualTo("username", username);
-                query.get().addOnCompleteListener(
-                        task -> {
-                            if (task.isSuccessful()) {
-
-                                if (task.getResult().size() > 0) {
-                                    for(QueryDocumentSnapshot document : task.getResult()){
-                                        User dbUser = document.toObject(User.class);
-                                        goToUserListActivity(dbUser);
-                                        break;
+                                    if(fbuser.isEmailVerified()){
+                                        goToUserListActivity();
+                                    }else{
+                                        Toast.makeText(this, "Debe verificar su cuenta antes de ingresar", Toast.LENGTH_LONG).show();
+                                        auth.signOut();
                                     }
-                                } else {
-                                    db.collection("users").document(user.getId()).set(user);
-                                    goToUserListActivity(user);
+
+                                }else{
+                                    Toast.makeText(this, task.getException().getMessage(), Toast.LENGTH_LONG).show();
                                 }
                             }
-                        }
-                );
+                    );
 
+                break;
 
+            case R.id.signupLink:
+                Intent intent = new Intent(this, SignupActivity.class);
+                startActivity(intent);
+                break;
+
+            case R.id.forgotPasswordLink:
+                Intent intentFogotPass = new Intent(this, ForgotPasswordActivity.class);
+                startActivity(intentFogotPass);
                 break;
         }
     }
 
 
-    public void goToUserListActivity(User user) {
+    public void goToUserListActivity() {
         Intent i = new Intent(this, UserListActivity.class);
-        i.putExtra("myUser", user);
         startActivity(i);
+        finish();
     }
 }

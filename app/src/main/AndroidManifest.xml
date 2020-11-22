@@ -3,8 +3,8 @@
     package="co.domi.clase10">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -13,12 +13,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".activities.ProfileActivity"></activity>
+        <activity android:name=".activities.ForgotPasswordActivity"></activity>
+        <activity android:name=".activities.SignupActivity" />
+        <activity android:name=".activities.ProfileActivity" />
         <activity
             android:name=".activities.ChatActivity"
             android:launchMode="singleTop" />
         <activity
             android:name=".activities.MainActivity"
+            android:launchMode="singleTop"></activity>
+        <activity
+            android:name=".activities.UserListActivity"
             android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -26,9 +31,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".activities.UserListActivity"
-            android:launchMode="singleTop" />
 
         <service android:name=".services.FCMService">
             <intent-filter>

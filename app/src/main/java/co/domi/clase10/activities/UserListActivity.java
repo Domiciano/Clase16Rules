@@ -19,6 +19,8 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -34,14 +36,27 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
     private User myUser;
     private RecyclerView userList;
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
+
     private Button logoutBtn, profileBtn;
     private boolean isLoggingout = false;
     private UserAdapter adapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_list);
+
+        db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
+
+        if(auth.getCurrentUser() == null){
+            goToLogin();
+            return;
+        }
+
+
         //Configuracion de la lista
         userList = findViewById(R.id.userList);
         logoutBtn = findViewById(R.id.logoutBtn);
@@ -56,10 +71,10 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
         userList.setLayoutManager(manager);
 
 
-        //Recuperar el user de la actividad pasada
-        myUser = (User) getIntent().getExtras().getSerializable("myUser");
+
+
+
         //Listar usuarios
-        db = FirebaseFirestore.getInstance();
 
 
 
@@ -67,6 +82,24 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
         logoutBtn.setOnClickListener(this);
         profileBtn.setOnClickListener(this);
 
+    }
+
+    private void goToLogin() {
+        Intent i=new Intent(this, MainActivity.class);
+        startActivity(i);
+        finish();
+    }
+
+    private void resolverMyUser() {
+        FirebaseUser fbuser = auth.getCurrentUser();
+        db.collection("users").document(fbuser.getUid()).get().addOnCompleteListener(
+                dbusertask -> {
+                    DocumentSnapshot snapshot = dbusertask.getResult();
+                    myUser = snapshot.toObject(User.class);
+                    Toast.makeText(this, "Bienvenido " + myUser.getUsername(), Toast.LENGTH_LONG).show();
+                    FirebaseMessaging.getInstance().unsubscribeFromTopic(myUser.getUsername());
+                }
+        );
     }
 
 
@@ -86,7 +119,6 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
 
     @Override
     protected void onPause() {
-
         if(isLoggingout){
             FirebaseMessaging.getInstance().unsubscribeFromTopic(myUser.getUsername());
         }else{
@@ -101,7 +133,7 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
     @Override
     protected void onResume() {
         super.onResume();
-        FirebaseMessaging.getInstance().unsubscribeFromTopic(myUser.getUsername());
+        resolverMyUser();
         loadUserList();
     }
 
@@ -110,7 +142,8 @@ public class UserListActivity extends AppCompatActivity implements View.OnClickL
         switch (v.getId()){
             case R.id.logoutBtn:
                 isLoggingout = true;
-                finish();
+                auth.signOut();
+                goToLogin();
                 break;
             case R.id.profileBtn:
                 Intent intent = new Intent(this, ProfileActivity.class);

@@ -15,9 +15,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 
@@ -35,6 +38,8 @@ public class ProfileActivity extends AppCompatActivity {
     private String path;
     private FirebaseStorage storage;
     private FirebaseFirestore db;
+    private FirebaseAuth auth;
+    private EditText newPasswordET;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,12 +53,14 @@ public class ProfileActivity extends AppCompatActivity {
 
         storage = FirebaseStorage.getInstance();
         db = FirebaseFirestore.getInstance();
+        auth = FirebaseAuth.getInstance();
 
         myUser = (User) getIntent().getExtras().getSerializable("myUser");
 
         saveProfileBtn = findViewById(R.id.saveProfileBtn);
         editProfileBtn = findViewById(R.id.editProfileBtn);
         imageProfile = findViewById(R.id.imageProfile);
+        newPasswordET = findViewById(R.id.newPasswordET);
 
 
         editProfileBtn.setOnClickListener(
@@ -67,6 +74,21 @@ public class ProfileActivity extends AppCompatActivity {
 
         saveProfileBtn.setOnClickListener(
                 v -> {
+
+                    if(!newPasswordET.getText().toString().trim().isEmpty()){
+                        auth.getCurrentUser().updatePassword(newPasswordET.getText().toString().trim()).addOnCompleteListener(
+                                task -> {
+                                    if(task.isSuccessful()){
+                                        Toast.makeText(this, "Contraseña cambiada con éxito", Toast.LENGTH_SHORT).show();
+                                    }else{
+                                        Toast.makeText(this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                        );
+                    }
+
+
+                    //Gestionar foto de perfil
                     if (path == null) return;
                     try {
                         String name = UUID.randomUUID().toString();
